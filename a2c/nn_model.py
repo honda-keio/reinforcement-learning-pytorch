@@ -45,12 +45,16 @@ class LinearModel(nn.Module):
 class CnnModel(nn.Module):
     def __init__(self, ob_s, ac_s, n_mid=512):
         super().__init__()
+        def init(module, gain=nn.init.calculate_gain("relu")):
+            nn.init.orthogonal_(module.weight.data, gain)
+            nn.init.constant_(module.bias.data, 0)
+            return module
         self.cnn_layer = nn.Sequential(
-            nn.Conv2d(ob_s[0], 32, 8, stride=4),
+            init(nn.Conv2d(ob_s[0], 32, 8, stride=4)),
             nn.ReLU(),
-            nn.Conv2d(32, 64, 4, stride=2),
+            init(nn.Conv2d(32, 64, 4, stride=2)),
             nn.ReLU(),
-            nn.Conv2d(64, 64, 3, stride=1),
+            init(nn.Conv2d(64, 64, 3, stride=1)),
             nn.ReLU(),
         )
         self.conv_out = self._get_conv_out(ob_s)
