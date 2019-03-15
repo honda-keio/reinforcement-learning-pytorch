@@ -65,7 +65,7 @@ class AAC:
         ADV = returns.view(-1, 1).to(self.device) - V
         pi_loss = - pi_log_prob.gather(1, actions) * ADV.detach()
         V_loss = ADV.pow(2)
-        entropy_loss = -(pi_log_prob * pi_log_prob.exp()).sum(1)
+        entropy_loss = -(pi_log_prob * pi_log_prob.exp()).sum(-1)
         total_loss = pi_loss.mean() + self.v_coef * V_loss.mean() + self.ent_coef * entropy_loss.mean()
         self.optimizer.zero_grad()
         total_loss.backward()
