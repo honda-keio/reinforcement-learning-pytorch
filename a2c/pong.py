@@ -57,7 +57,7 @@ if __name__ == "__main__":
     
     a2c = AAC(ENV, CnnModel, max_epochs, N, T, make_env, lr=lr, max_grad_norm=max_grad_norm, 
         n_mid=n_mid, v_coef=v_coef, device=device)
-    rs = a2c(path+name+"/")
+    rs = a2c(path+name+"/", 500)
     with open(path+"reward_csv/"+name+".csv", "a") as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(rs)
