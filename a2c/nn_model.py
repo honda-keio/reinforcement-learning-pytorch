@@ -80,7 +80,7 @@ class CnnModel(nn.Module):
         assert x is not None or pi is not None
         with torch.no_grad():
             if pi is None:
-                h = self.phi(x)
+                h = self.cnn_layer(x).view(-1, self.conv_out)
                 pi = self.actor(h)
             prob = F.softmax(pi, dim=1)
             return prob.multinomial(1)
