@@ -59,6 +59,8 @@ class AAC:
             returns[t] = rewards[t] + self.gamma * masks[t] * returns[t+1]            
         return returns
         """
+        rewards = torch.from_numpy(np.expand_dims(rewards, -1))
+        masks = torch.from_numpy(masks)
         returns = torch.zeros([self.T+1, self.N, 1])
         with torch.no_grad():
             V = self.model.V(states[-1].to(self.device)).to("cpu")
