@@ -8,8 +8,8 @@ import numpy as np
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 
 class AAC:
-    def __init__(self, ENV, model, max_epochs, N, T, make_env, optimizer=optim.Adam, n_mid=10, epsilon=0.3, 
-                gamma=0.99, v_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=0.01, device=None):
+    def __init__(self, ENV, model, max_epochs, N, T, make_env, optimizer=optim.Adam, n_mid=10, 
+                gamma=0.99, lambda_gae=0.98, v_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=0.01, device=None):
         self.envs = SubprocVecEnv([make_env(ENV) for _ in range(N)])
         self.ob_s = self.envs.observation_space.shape
         ac_s = self.envs.action_space.n
@@ -19,9 +19,9 @@ class AAC:
         self.N = N
         self.T = T
         self.gamma = gamma
+        self.lambda_gae = lambda_gae
         self.v_coef = v_coef
         self.ent_coef = ent_coef
-        self.epsilon = epsilon
         self.max_grad_norm = max_grad_norm
         if device:
             self.device = device
@@ -47,7 +47,8 @@ class AAC:
                 states[t+1] = torch.from_numpy(state)
                 masks[t][done] = 0.0
         return states, masks, rewards, actions, 
-    def calc_returns(self, rewards, masks, last_s):
+    def calc_returns(self, rewards, masks, states):
+        """
         with torch.no_grad():
             last_v  = self.model.V(last_s.to(self.device)).to("cpu")
         rewards = torch.from_numpy(np.expand_dims(rewards, -1))
@@ -57,6 +58,16 @@ class AAC:
         for t in reversed(range(self.T-1)):
             returns[t] = rewards[t] + self.gamma * masks[t] * returns[t+1]            
         return returns
+        """
+        returns = torch.zeros([self.T+1, self.N, 1])
+        with torch.no_grad():
+            V = self.model.V(states[-1].to(self.device)).to("cpu")
+            for t in reversed(range(self.T)):
+                delta_t = rewards[t] + self.gamma * V
+                V = self.model.V(states[t].to(self.device)).to("cpu")
+                delta_t -= V
+                returns[t] = delta_t + masks[t] * self.gamma * self.lambda_gae * returns[t+1]
+        return returns[:-1]
 
     def update(self, states, actions, returns):
         actions = torch.from_numpy(actions).view(-1,1).long().to(self.device)
