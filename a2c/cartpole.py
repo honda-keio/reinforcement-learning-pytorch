@@ -28,16 +28,19 @@ if __name__ == "__main__":
     parser.add_argument("--N", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--gamma", type=float, default=0.9)
+    parser.add_argument("--lambda_gae", type=float, default=0.98)
+    parser.add_argument("--n_mid", type=int, default=10)
     parser.add_argument("--max_grad_norm", type=float, default=0.5)
     parser.add_argument("--path", default="cart/")
-    parser.add_argument("-e", "--max_epochs", type=int, default=2000)
+    parser.add_argument("-e", "--max_epochs", type=int, default=5000)
     parser.add_argument("--no_cuda", action="store_true")
     parser.add_argument("--v_coef", type=float, default=0.5)
     args = parser.parse_args()
     ENV = "CartPole-v0"
     max_epochs = args.max_epochs
     gamma = args.gamma
-    n_mid = 10
+    lambda_gae = args.lambda_gae
+    n_mid = args.n_mid
     N = args.N
     T = args.T
     max_grad_norm = args.max_grad_norm
@@ -51,6 +54,7 @@ if __name__ == "__main__":
     JST = timezone(timedelta(hours=+9), "JST")
     name = "lr" + str(lr)
     name += "v_coef" + str(v_coef)
+    name += "gae" + str(lambda_gae)
     print(datetime.now(JST), name)
     try:
         os.mkdir(path)
