@@ -4,7 +4,25 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 import numpy as np
 
-class LinearModel(nn.Module):
+class BaseModel(nn.Module):
+    def forward(self, x):
+        phi = self.phi(x)
+        pi = self.actor(phi)
+        v = self.critic(phi)
+        return pi, v
+
+    def act(self, x=None, pi=None):
+        assert x is not None or pi is not None
+        if pi is None:
+            pi = self.actor(self.phi(x))
+        pi = F.softmax(pi, dim=1)        
+        return pi.multinomial(1)
+
+    def V(self, x):
+        phi = self.phi(x)
+        return self.critic(phi)
+
+class LinearModel(BaseModel):
     def __init__(self, ob_s, ac_s, n_mid=10):
         super().__init__()
         self.phi = nn.Sequential(
@@ -23,7 +41,7 @@ class LinearModel(nn.Module):
             nn.ReLU(),
             nn.Linear(n_mid, 1)
         )
-
+    """
     def forward(self, x):
         phi = self.phi(x)
         pi = self.actor(phi)
@@ -40,9 +58,10 @@ class LinearModel(nn.Module):
     def V(self, x):
         phi = self.phi(x)
         return self.critic(phi)
+    """
 
 
-class CnnModel(nn.Module):
+class CnnModel(BaseModel):
     def __init__(self, ob_s, ac_s, n_mid=512):
         super().__init__()
         def init(module, gain=nn.init.calculate_gain("relu")):
@@ -74,8 +93,12 @@ class CnnModel(nn.Module):
         h = self.cnn_layer(x)
         return int(np.prod(h.size()))
 
+    def phi(self, x):
+        h = self.cnn_layer(x)
+        return h.view(-1, self.conv_out)
+    """
     def forward(self, x):
-        phi = self.cnn_layer(x).view(-1, self.conv_out)
+        phi = self.phi(x)
         pi = self.actor(phi)
         v = self.critic(phi)
         return pi, v
@@ -84,12 +107,12 @@ class CnnModel(nn.Module):
         assert x is not None or pi is not None
         with torch.no_grad():
             if pi is None:
-                h = self.cnn_layer(x).view(-1, self.conv_out)
+                h = self.phi(x)
                 pi = self.actor(h)
             prob = F.softmax(pi, dim=1)
             return prob.multinomial(1)
 
     def V(self, x):
-        phi = self.cnn_layer(x).view(-1, self.conv_out)
+        phi = self.phi(x)
         return self.critic(phi)
-
+    """

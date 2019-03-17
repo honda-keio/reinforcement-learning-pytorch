@@ -8,6 +8,7 @@ from functools import partial
 from nn_model import CnnModel
 from a2c import AAC
 from wrappers import make_env as make_env_
+from argments import get_args
 
 class RewEnv(gym.RewardWrapper):
     def __init__(self, env):
@@ -39,15 +40,8 @@ def make_env(ENV):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--T", type=int, default=5)
-    parser.add_argument("--N", type=int, default=32)
-    parser.add_argument("--lr", type=float, default=5e-6)
-    parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--max_grad_norm", type=float, default=0.5)
+    get_args(parser)
     parser.add_argument("--path", default="pong/")
-    parser.add_argument("-e", "--max_epochs", type=int, default=10000)
-    parser.add_argument("--no_cuda", action="store_true")
-    parser.add_argument("--v_coef", type=float, default=0.5)
     args = parser.parse_args()
     ENV = "PongNoFrameskip-v4"
     max_epochs = args.max_epochs

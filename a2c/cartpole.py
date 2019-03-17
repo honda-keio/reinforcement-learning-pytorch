@@ -1,10 +1,12 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import torch, gym, os, argparse, csv
+import torch, gym, os, csv, argparse
+from functools import partial
 from datetime import datetime, timedelta, timezone
 from nn_model import LinearModel
 from a2c import AAC
+from argments import get_args
 
 class CartEnv(gym.RewardWrapper):
     def step(self, action):
@@ -24,17 +26,9 @@ def make_env(ENV):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--T", type=int, default=5)
-    parser.add_argument("--N", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--gamma", type=float, default=0.9)
-    parser.add_argument("--lambda_gae", type=float, default=0.98)
-    parser.add_argument("--n_mid", type=int, default=10)
-    parser.add_argument("--max_grad_norm", type=float, default=0.5)
+    get_args(parser)
     parser.add_argument("--path", default="cart/")
-    parser.add_argument("-e", "--max_epochs", type=int, default=5000)
-    parser.add_argument("--no_cuda", action="store_true")
-    parser.add_argument("--v_coef", type=float, default=0.5)
+    parser.add_argument("--n_mid", type=int, default=10)
     args = parser.parse_args()
     ENV = "CartPole-v0"
     max_epochs = args.max_epochs
@@ -73,7 +67,7 @@ if __name__ == "__main__":
     except FileExistsError:
         pass
     
-    a2c = AAC(ENV, LinearModel, max_epochs, N, T, make_env, lr=lr, max_grad_norm=max_grad_norm, 
+    a2c = AAC(ENV, LinearModel, max_epochs, N, T, make_env, optimizer=partial(torch.optim.RMSprop, eps=1e-5, alpha=0.99), lr=lr, max_grad_norm=max_grad_norm, 
         n_mid=n_mid, v_coef=v_coef, device=device)
     rs = a2c(path+name+"/")
     with open(path+"reward_csv/"+name+".csv", "a") as f:
