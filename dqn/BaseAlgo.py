@@ -81,7 +81,9 @@ class BaseAlgo:
         with open(path+"cost_csv/"+name+".csv", "a") as f:
             writer = csv.writer(f, lineterminator='\n')
             writer.writerow(costs)
-        plt.plot(range(len(costs)), costs)
+        plt.plot(np.arange(len(costs))*self.rec_interval, costs)
+        plt.xlabel("training times")
+        plt.ylabel("average cost per episodes")
         plt.savefig(path+"cost/"+name+".png")
         plt.close()
         plt.plot(range(len(costs)), losses)
