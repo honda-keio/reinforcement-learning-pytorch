@@ -76,6 +76,8 @@ class BaseAlgo:
                 losses[rec_ind] = self.storage.losses[index].mean()
                 print(t + 1, "costs", costs[rec_ind], "loss", losses[rec_ind])
                 rec_ind += 1
+                torch.save(self.model.to("cpu").state_dict(), path+name+"/"+str(t+1)+".pth")
+                self.model.to(self.device)
         with open(path+"cost_csv/"+name+".csv", "a") as f:
             writer = csv.writer(f, lineterminator='\n')
             writer.writerow(costs)
