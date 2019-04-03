@@ -22,6 +22,10 @@ class BaseModel(nn.Module):
         phi = self.phi(x)
         return self.critic(phi)
 
+    def Q(self, x):
+        phi = self.phi(x)
+        return self.actor(phi)
+
 class LinearModel(BaseModel):
     def __init__(self, ob_s, ac_s, n_mid=10):
         super().__init__()
@@ -32,8 +36,8 @@ class LinearModel(BaseModel):
         )
 
         self.actor = nn.Sequential(
-            nn.Linear(n_mid, n_mid),
-            nn.ReLU(),
+            #nn.Linear(n_mid, n_mid),
+            #nn.ReLU(),
             nn.Linear(n_mid, ac_s)
         )
         self.critic = nn.Sequential(
@@ -77,17 +81,21 @@ class CnnModel(BaseModel):
             nn.ReLU(),
         )
         self.conv_out = self._get_conv_out(ob_s)
+        self.L = nn.Sequential(
+            nn.Linear(self.conv_out, n_mid),
+            nn.ReLU()
+        )
         self.actor = nn.Sequential(
             #nn.Linear(self.conv_out, n_mid),
             #nn.ReLU(),
             #nn.Linear(n_mid, ac_s),
-            nn.Linear(self.conv_out, ac_s)
+            nn.Linear(n_mid, ac_s)
         )
         self.critic = nn.Sequential(
             #nn.Linear(self.conv_out, n_mid),
             #nn.ReLU(),
             #nn.Linear(n_mid, 1)
-            nn.Linear(self.conv_out, 1)
+            nn.Linear(n_mid, 1)
             )
 
     def _get_conv_out(self, ob_s):
@@ -96,8 +104,8 @@ class CnnModel(BaseModel):
         return int(np.prod(h.size()))
 
     def phi(self, x):
-        h = self.cnn_layer(x)
-        return h.view(-1, self.conv_out)
+        h = self.cnn_layer(x).view(-1, self.conv_out)
+        return self.L(h)
     """
     def forward(self, x):
         phi = self.phi(x)
