@@ -1,13 +1,15 @@
 def get_args(parser):
-    parser.add_argument("--T", type=float, default=1e6)
-    parser.add_argument("--storage_size", type=float, default=1e4)
-    parser.add_argument("--targ_synch", type=float, default=1e3)
+    parser.add_argument("--T", type=float, default=1e7)
+    parser.add_argument("--storage_size", type=float, default=1e5)
+    parser.add_argument("--targ_synch", type=float, default=5e3)
+    parser.add_argument("--ep_len", type=float, default=1e3)
     parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--rec_interval", type=int, default=200, help="record interval")
+    parser.add_argument("--rec_times", type=float, default=200, help="record frequency")
     parser.add_argument("--N", type=int, default=16, help="num of parallel envs")
-    parser.add_argument("--lr", type=float, default=7e-4)
-    parser.add_argument("--gamma", type=float, default=0.9, help="discount factor")
-    parser.add_argument("--lambda_gae", type=float, default=0.98)
+    parser.add_argument("--N_ch", type=int, default=16, help="for performance check")
+    parser.add_argument("--lr", type=float, default=2.5e-4)
+    parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
+    parser.add_argument("--lambda_gae", type=float, default=0.99)
     parser.add_argument("--max_grad_norm", type=float, default=0.5)
     parser.add_argument("--no_cuda", action="store_true")
     parser.add_argument("--N_step", type=int, default=5, help="for a2c")
@@ -21,9 +23,11 @@ def arg2kwargs(args):
         "storage_size": int(args.storage_size),
         "batch_size": args.batch_size,
         "targ_synch": int(args.targ_synch),
+        "ep_len": int(args.ep_len),
         "N": args.N,
+        "N_ch": args.N_ch,
         "lr": args.lr,
-        "rec_interval": args.rec_interval,
+        "rec_times": int(args.rec_times),
         "gamma": args.gamma,
         "lambda_gae": args.lambda_gae,
         "max_grad_norm": args.max_grad_norm,

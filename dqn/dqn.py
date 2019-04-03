@@ -7,6 +7,8 @@ class DQN(BaseAlgo):
     def __init__(self, epsilon=0.1, targ_synch=int(1e3), *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.epsilon = torch.zeros(self.N) + epsilon
+        rate  = epsilon / self.storage_size
+        self.epsilon = lambda t: torch.zeros(self.N) + max(1 - rate * t,  epsilon)
         self.targ_model = copy.deepcopy(self.model).to(self.device)
         self.targ_synch = targ_synch
         self.N_step = 1
@@ -26,21 +28,21 @@ class DQN(BaseAlgo):
         with torch.no_grad():
             Q_n_max, _ = self.targ_model.Q(states_n).max(1, keepdim=True)
         R = rewards + masks * self.gamma * Q_n_max
-        loss = (R - self.model.Q(states).gather(1, actions))
-        return loss.pow(2).mean()
+        loss = (R - self.model.Q(states).gather(1, actions)).pow(2) * 0.5
+        return loss.mean()
     
     def calc_loss(self, t):
         return self.td(t)
 
     def update(self, t, *args, **kwargs):
-        if t * self.N > self.batch_size:
+        if t > self.storage_size * 0.1 and (t + 1) % 4 == 0:
             kwargs["t"] = t
             super().update(*args, **kwargs)
 
     def act(self, t):
         with torch.no_grad():
             act = self.model.Q(self.storage.states[t].to(self.device)).to("cpu").argmax(1).numpy()
-        for i, ep in enumerate(torch.bernoulli(self.epsilon)):
+        for i, ep in enumerate(torch.bernoulli(self.epsilon(t))):
             if ep:
                 act[i] = np.random.randint(0, self.ac_s, 1)
         return act

@@ -69,8 +69,8 @@ class CnnModel(BaseModel):
     def __init__(self, ob_s, ac_s, n_mid=512):
         super().__init__()
         def init(module, gain=nn.init.calculate_gain("relu")):
-            nn.init.orthogonal_(module.weight.data, gain)
-            nn.init.constant_(module.bias.data, 0)
+            #nn.init.orthogonal_(module.weight.data, gain)
+            #nn.init.constant_(module.bias.data, 0)
             return module
         self.cnn_layer = nn.Sequential(
             init(nn.Conv2d(ob_s[0], 32, 8, stride=4)),

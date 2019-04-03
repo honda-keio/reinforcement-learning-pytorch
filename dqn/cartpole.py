@@ -1,7 +1,4 @@
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import torch, gym, os, csv, argparse
+import torch, gym, argparse
 from datetime import datetime, timedelta, timezone
 from nn_model import LinearModel
 from dqn import DQN
@@ -39,28 +36,7 @@ if __name__ == "__main__":
     path = args.path
     JST = timezone(timedelta(hours=+9), "JST")
     name = "lr" + str(kwargs["lr"])
-    name += "v_coef" + str(kwargs["v_coef"])
     print(datetime.now(JST), name)
-    try:
-        os.mkdir(path)
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(path+"cost")
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(path+"loss")
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(path+"cost_csv")
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(path+name)
-    except FileExistsError:
-        pass
     
     dqn = DQN(ENV=ENV, model=LinearModel, make_env=make_env, **kwargs, device=device)
     dqn(path, name)
