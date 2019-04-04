@@ -11,7 +11,7 @@ from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 
 class BaseAlgo:
-    def __init__(self, ENV, model, make_env, N, T, VecEnv=SubprocVecEnv, storage_size=int(1e4), optimizer=optim.Adam, ep_len=int(1e3), N_ch=4, 
+    def __init__(self, ENV, model, make_env, N, T, VecEnv=SubprocVecEnv, storage_size=int(1e4), optimizer=optim.Adam, ep_len=int(1e3), N_ch=4,
                 n_mid=512, batch_size=32, gamma=0.99, max_grad_norm=0.5, lr=7e-4, lambda_gae=0.98, device=None, cuda_id=0, seed=0, rec_times=200, *args, **kwargs):
                 #optimizer=partial(torch.optim.RMSprop, eps=1e-5, alpha=0.99, momentum=0.95), 
         if N == 1:
@@ -76,6 +76,7 @@ class BaseAlgo:
             self.update(t)
             if (t + 1) == self.ep_len:
                 scores[rec_ind] = self.storage.rewards[:self.ep_len].sum() / self.N
+                print(t + 1, scores[rec_ind])
                 rec_ind += 1
             if (t + 1) % rec_interval == 0:
                 ind = np.arange(t + 1 - self.ep_len, t + 1) % self.storage_size

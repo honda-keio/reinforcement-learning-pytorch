@@ -17,6 +17,7 @@ def get_args(parser):
     parser.add_argument("--N_step", type=int, default=5, help="for a2c")
     parser.add_argument("--v_coef", type=float, default=0.5)
     parser.add_argument("--ent_coef", type=float, default=0.01)
+    parser.add_argument("--seed", type=int, default=0)
     
     
 
@@ -39,7 +40,8 @@ def arg2kwargs(args):
         "cuda_id": args.cuda_id,
         "N_step": args.N_step,
         "v_coef": args.v_coef,
-        "ent_coef":  args.ent_coef
+        "ent_coef":  args.ent_coef,
+        "seed": args.seed
     }
     return kwargs
 
