@@ -1,5 +1,5 @@
 import torch
-import time, copy
+import copy
 import numpy as np
 from BaseAlgo import BaseAlgo
 
@@ -11,7 +11,6 @@ class DQN(BaseAlgo):
         self.epsilon = lambda t: torch.zeros(self.N) + max(1 - rate * t,  epsilon)
         self.targ_model = copy.deepcopy(self.model).to(self.device)
         self.targ_synch = targ_synch
-        self.N_step = 1
 
     def td(self, t):
         if (t + 1) % self.targ_synch == 0:
@@ -24,7 +23,7 @@ class DQN(BaseAlgo):
         masks  = torch.from_numpy(self.storage.masks[r_ind0_np,r_ind1_np]).view(self.batch_size, 1).to(self.device)
         actions = torch.from_numpy(self.storage.actions[r_ind0_np,r_ind1_np]).view(self.batch_size, 1).to(self.device)
         states = self.storage.states[r_ind0,r_ind1].view(self.batch_size, *self.ob_s).to(self.device)
-        states_n = self.storage.states[(r_ind0+1)%self.storage_size,r_ind1].view(self.batch_size, *self.ob_s).to(self.device)
+        states_n = self.storage.states[r_ind0+1,r_ind1].view(self.batch_size, *self.ob_s).to(self.device)
         with torch.no_grad():
             Q_n_max, _ = self.targ_model.Q(states_n).max(1, keepdim=True)
         R = rewards + masks * self.gamma * Q_n_max
