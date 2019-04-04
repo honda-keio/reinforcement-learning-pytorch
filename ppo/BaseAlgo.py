@@ -68,12 +68,15 @@ class BaseAlgo:
     def __call__(self, path="save_path/", name=""):
         self.mkdir(path, name)
         self.storage.states[0] = torch.from_numpy(self.envs.reset())
-        scores = np.zeros(self.rec_times)
+        scores = np.zeros(self.rec_times + 1)
         rec_interval = self.T // self.rec_times
         rec_ind = 0
         for t in range(self.T):
             self.one_step(t)
             self.update(t)
+            if (t + 1) == self.ep_len:
+                scores[rec_ind] = self.storage.rewards[:self.ep_len].sum() / self.N
+                rec_ind += 1
             if (t + 1) % rec_interval == 0:
                 ind = np.arange(t + 1 - self.ep_len, t + 1) % self.storage_size
                 scores[rec_ind] = self.storage.rewards[ind].sum() / self.N
@@ -84,7 +87,7 @@ class BaseAlgo:
         with open(path+"score_csv/"+name+".csv", "a") as f:
             writer = csv.writer(f, lineterminator='\n')
             writer.writerow(scores)
-        plt.plot(np.arange(self.rec_times) * rec_interval, scores, label="score")
+        plt.plot(np.arange(self.rec_times+1) * rec_interval, scores, label="score")
         #plt.legend()
         plt.xlabel("training times")
         plt.ylabel("average score per episodes")
