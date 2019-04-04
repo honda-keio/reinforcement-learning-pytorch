@@ -9,15 +9,13 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
-from multiprocessing import Process, Pipe
 
 class BaseAlgo:
     def __init__(self, ENV, model, make_env, N, T, VecEnv=SubprocVecEnv, storage_size=int(1e4), optimizer=optim.Adam, ep_len=int(1e3), N_ch=4, 
-                n_mid=512, batch_size=32, gamma=0.99, max_grad_norm=0.5, lr=7e-4, lambda_gae=0.98, device=None, seed=0, rec_times=200, *args, **kwargs):
+                n_mid=512, batch_size=32, gamma=0.99, max_grad_norm=0.5, lr=7e-4, lambda_gae=0.98, device=None, cuda_id=0, seed=0, rec_times=200, *args, **kwargs):
                 #optimizer=partial(torch.optim.RMSprop, eps=1e-5, alpha=0.99, momentum=0.95), 
         if N == 1:
             VecEnv = DummyVecEnv
-        torch.multiprocessing.set_start_method("spawn")
         self.reset_seed(seed=seed)
         self.envs = VecEnv([make_env(ENV) for _ in range(N)])
         self.ac_s = self.envs.action_space.n
@@ -39,7 +37,6 @@ class BaseAlgo:
         else:
             self.device = torch.device("cpu")
         self.storage = Storage(storage_size=storage_size, N=N, ob_s=self.ob_s, *args, **kwargs)
-        self.pef_ch = PefoCheck(ENV, make_env, N_ch, ep_len, self.device)
 
     def reset_seed(self, seed=0):
         torch.manual_seed(seed)
@@ -69,6 +66,32 @@ class BaseAlgo:
         self.optimizer.step()
         
     def __call__(self, path="save_path/", name=""):
+        self.mkdir(path, name)
+        self.storage.states[0] = torch.from_numpy(self.envs.reset())
+        scores = np.zeros(self.rec_times)
+        rec_interval = self.T // self.rec_times
+        rec_ind = 0
+        for t in range(self.T):
+            self.one_step(t)
+            self.update(t)
+            if (t + 1) % rec_interval == 0:
+                ind = np.arange(t + 1 - self.ep_len, t + 1) % self.storage_size
+                scores[rec_ind] = self.storage.rewards[ind].sum() / self.N
+                print(t + 1, scores[rec_ind])
+                rec_ind += 1
+                torch.save(self.model.to("cpu").state_dict(), path+name+"/"+str(t+1)+".pth")
+                self.model.to(self.device)
+        with open(path+"score_csv/"+name+".csv", "a") as f:
+            writer = csv.writer(f, lineterminator='\n')
+            writer.writerow(scores)
+        plt.plot(np.arange(self.rec_times) * rec_interval, scores, label="score")
+        #plt.legend()
+        plt.xlabel("training times")
+        plt.ylabel("average score per episodes")
+        plt.savefig(path+"score/"+name+".png")
+        plt.close()
+    
+    def mkdir(self, path, name):
         try:
             os.mkdir(path)
         except FileExistsError:
@@ -77,12 +100,6 @@ class BaseAlgo:
             os.mkdir(path+"score")
         except FileExistsError:
             pass
-        """
-        try:
-            os.mkdir(path+"loss")
-        except FileExistsError:
-            pass
-        """
         try:
             os.mkdir(path+"score_csv")
         except FileExistsError:
@@ -91,36 +108,6 @@ class BaseAlgo:
             os.mkdir(path+name)
         except FileExistsError:
             pass
-        self.storage.states[0] = torch.from_numpy(self.envs.reset())
-        scores = np.zeros(self.rec_times + 1)
-        rec_interval = self.T // self.rec_times
-        rec_ind = 0
-        recv_end, send_end = Pipe(False)
-        p = Process(target=self.pef_ch, args=(0, copy.deepcopy(self.model).to(self.device), send_end))
-        p.start()
-        for t in range(self.T):
-            self.one_step(t)
-            self.update(t)
-            if (t + 1) % rec_interval == 0:
-                p.join()
-                scores[rec_ind] = recv_end.recv()
-                recv_end, send_end = Pipe(False)
-                p = Process(target=self.pef_ch, args=(t + 1, copy.deepcopy(self.model).to(self.device), send_end))
-                p.start()
-                rec_ind += 1
-                torch.save(self.model.to("cpu").state_dict(), path+name+"/"+str(t+1)+".pth")
-                self.model.to(self.device)
-        p.join()
-        scores[rec_ind] = recv_end.recv()
-        with open(path+"score_csv/"+name+".csv", "a") as f:
-            writer = csv.writer(f, lineterminator='\n')
-            writer.writerow(scores)
-        plt.plot(np.arange(self.rec_times + 1) * rec_interval, scores, label="score")
-        #plt.legend()
-        plt.xlabel("training times")
-        plt.ylabel("average score per episodes")
-        plt.savefig(path+"score/"+name+".png")
-        plt.close()
 
 
 class Storage:
@@ -143,22 +130,3 @@ class Storage:
         self.masks[t][done] = 0.0
         self.rewards[t] = reward
         self.actions[t] = action
-
-
-class PefoCheck:
-    def __init__(self, ENV, make_env, N, ep_len, device, VecEnv=DummyVecEnv):
-        self.envs = VecEnv([make_env(ENV) for _ in range(N)])
-        self.N = N
-        self.T = ep_len
-        self.device = device
-    def __call__(self, t, model, send_end):
-        rewards = 0
-        st = self.envs.reset()
-        for _ in range(self.T):
-            st = torch.from_numpy(st).to(self.device)
-            act = model.act(st).to("cpu").view(-1).numpy()
-            st, r, _, _ = self.envs.step(act)
-            rewards += r.sum()
-        rewards /= self.N
-        print(t, "score", rewards)
-        send_end.send(rewards)
