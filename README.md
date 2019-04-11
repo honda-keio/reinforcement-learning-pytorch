@@ -1,8 +1,15 @@
 # reinforcement-learning-pytorch
 
-勉強のため強化学習の手法を実装していこうと思っています。
+## how to run
+ppo
+```
+python cartpole.py --algo ppo --ep_len 200
+```
+dqn
+```
+python cartpole.py --algo dqn --ep_len 200
+```
 
-一通り実装できたらモジュール化しようかと思っています。
 
 - [Proximal Policy Optimization](https://openai.com/blog/openai-baselines-ppo/)
 - [Deep Q Network](https://deepmind.com/research/dqn/)
